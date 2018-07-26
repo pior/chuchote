@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0">
+
+  <title>Chuchote</title>
+</head>
+
+<body>
+  <input id="input" type="text" />
+  <button onclick="send()">Send</button>
+
+  <pre id="output"></pre>
+
+  <script>
+    var output = document.getElementById("output");
+    function show(msg) {
+      output.innerHTML += msg + "\n";
+    }
+
+    var socket = new WebSocket("ws://" + window.location.host + window.location.pathname + "/socket");
+
+    socket.onopen = function () {
+      show("Status: Connected");
+    };
+
+    socket.onmessage = function (e) {
+      show("Server: " + e.data);
+    };
+
+    var input = document.getElementById("input");
+    function send() {
+      socket.send(input.value);
+      input.value = "";
+    }
+  </script>
+
+</body>
+</html>
+
+
+

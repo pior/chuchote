@@ -1,0 +1,23 @@
+name: chuchote
+
+type: go
+
+up:
+  # - homebrew:
+  #   - openssl
+  - go:
+      version: '1.9'
+  - golang_dep
+
+commands:
+  build:
+    run: go build -o chuchote
+  run-built:
+    desc: |
+      Run the target after `dev build`.
+      `dev run` is a special command that will run `dev build` and then `dev run-built` if they are both defined.
+    run: ./chuchote
+  test:
+    run: go test ./...
+  style:
+    run: 'golint ./... && errcheck ./...'
