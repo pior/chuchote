@@ -28,5 +28,6 @@ func main() {
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.Gzip())
 	e.Logger.Fatal(e.Start(":8000"))
 }
