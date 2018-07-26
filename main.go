@@ -14,23 +14,27 @@ import (
 	"github.com/teris-io/shortid"
 )
 
-func generateRandomRoomID() string {
-	return shortid.MustGenerate()
-}
-
-type emitter func(string)
-
-type closer func()
+type clientID string
 
 type client struct {
-	conn       *websocket.Conn
-	emit       emitter
-	receiverCh chan interface{}
-	close      closer
+	id   clientID
+	conn *websocket.Conn
+	room *room
+}
+
+func newClient(conn *websocket.Conn, room *room) *client {
+	return &client{
+		id:   clientID(shortid.MustGenerate()),
+		conn: conn,
+		room: room,
+	}
 }
 
 func (c *client) reader() {
-	defer c.close()
+	defer func() {
+		c.conn.Close()
+		c.room.deleteClient(c)
+	}()
 
 	for {
 		_, p, err := c.conn.ReadMessage()
@@ -38,14 +42,17 @@ func (c *client) reader() {
 			fmt.Println(err)
 			break
 		}
-		fmt.Printf("Received from %s: %s\n", c.conn.RemoteAddr(), p)
-		c.emit(string(p))
+		fmt.Printf("%s: Received from %s: \"%s\"\n", c.id, c.conn.RemoteAddr(), p)
+		c.room.sendMessage(string(p))
 	}
 }
 
 func (c *client) writer() {
-	for msg := range c.receiverCh {
-		fmt.Printf("Sending to %s: %s\n", c.conn.RemoteAddr(), msg)
+	ch := c.room.getMessageChannel()
+	defer c.room.closeMessageChannel(ch)
+
+	for msg := range ch {
+		fmt.Printf("%s: Sending to %s: \"%s\"\n", c.id, c.conn.RemoteAddr(), msg)
 		err := c.conn.WriteMessage(websocket.TextMessage, []byte(msg.(string)))
 		if err != nil {
 			fmt.Println(err)
@@ -54,41 +61,97 @@ func (c *client) writer() {
 	}
 }
 
+type room struct {
+	id      string
+	core    *core
+	pubsub  *pubsub.PubSub
+	clients map[clientID]*client
+}
+
+func newRoom(core *core, id string) *room {
+	return &room{
+		id:      id,
+		core:    core,
+		pubsub:  pubsub.New(10),
+		clients: make(map[clientID]*client),
+	}
+}
+
+func (r *room) sendMessage(message string) {
+	r.pubsub.Pub(message, "msg")
+}
+
+func (r *room) sendInfo(message string) {
+	r.pubsub.Pub(fmt.Sprintf("info: %s", message), "msg")
+}
+
+func (r *room) getMessageChannel() chan interface{} {
+	return r.pubsub.Sub("msg")
+}
+
+func (r *room) closeMessageChannel(ch chan interface{}) {
+	r.pubsub.Unsub(ch)
+}
+
+func (r *room) createClient(conn *websocket.Conn) *client {
+	c := newClient(conn, r)
+	r.clients[c.id] = c
+	r.sendInfo(fmt.Sprintf("new client list: %+v", r.clients))
+	return c
+}
+
+func (r *room) deleteClient(cl *client) {
+	delete(r.clients, cl.id)
+
+	if len(r.clients) == 0 {
+		r.close()
+		r.core.deleteRoom(r)
+		return
+	}
+
+	r.sendInfo(fmt.Sprintf("new client list: %+v", r.clients))
+}
+
+func (r *room) close() {
+	r.pubsub.Shutdown()
+}
+
 type core struct {
-	pubsub   *pubsub.PubSub
 	upgrader *websocket.Upgrader
+	rooms    map[string]*room
 }
 
 func newCore() *core {
 	return &core{
-		pubsub: pubsub.New(10),
 		upgrader: &websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
 		},
+		rooms: make(map[string]*room),
 	}
 }
 
-func (co *core) startClient(conn *websocket.Conn, room string) {
-	inboundCh := co.pubsub.Sub(room)
-
-	cl := &client{
-		conn: conn,
-		close: func() {
-			conn.Close()
-			co.pubsub.Unsub(inboundCh)
-		},
-		emit: func(s string) {
-			co.pubsub.Pub(s, room)
-		},
-		receiverCh: inboundCh,
+func (co *core) getOrCreateRoom(id string) *room {
+	if _, present := co.rooms[id]; !present {
+		co.rooms[id] = newRoom(co, id)
 	}
+	return co.rooms[id]
+}
 
+func (co *core) connect(conn *websocket.Conn, roomID string) {
+	room := co.getOrCreateRoom(roomID)
+	cl := room.createClient(conn)
 	go cl.reader()
 	go cl.writer()
 }
 
-func (co *core) Serve(c echo.Context) error {
+func (co *core) deleteRoom(room *room) {
+	delete(co.rooms, room.id)
+	fmt.Printf("Deleted a room: %+v\n", room)
+	fmt.Printf("New list of rooms: %+v\n", co.rooms)
+}
+
+func (co *core) serve(c echo.Context) error {
 	roomID := c.Param("id")
 	if roomID == "" {
 		return c.String(http.StatusBadRequest, "invalid room id")
@@ -100,7 +163,7 @@ func (co *core) Serve(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "failed to upgrade to websocket connection")
 	}
 
-	co.startClient(conn, roomID)
+	co.connect(conn, roomID)
 	return nil
 }
 
@@ -108,7 +171,8 @@ func main() {
 	e := echo.New()
 
 	e.GET("/", func(c echo.Context) error {
-		return c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("/r/%s", generateRandomRoomID()))
+		roomID := shortid.MustGenerate()
+		return c.Redirect(http.StatusTemporaryRedirect, "/r/"+roomID)
 	})
 
 	e.GET("/r/:id", func(c echo.Context) error {
@@ -116,7 +180,7 @@ func main() {
 	})
 
 	c := newCore()
-	e.GET("/r/:id/socket", c.Serve)
+	e.GET("/r/:id/socket", c.serve)
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
