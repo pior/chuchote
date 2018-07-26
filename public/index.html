@@ -26,8 +26,26 @@
     };
 
     socket.onmessage = function (e) {
-      show("Server: " + e.data);
+      event = JSON.parse(e.data)
+      if (event.Message != null) {
+        show(event.Message.From + ": " + event.Message.Body);
+        return
+      }
+      if (event.Info != null) {
+        show("INFO: " + event.Info.Kind + " (" + event.Info.Description + ")");
+        return
+      }
+
+      show("Error: unknown event: " + event);
     };
+
+    socket.onclose = function (e) {
+      show("Status: Closed (" + e + ")");
+    }
+
+    socket.onerror = function (e) {
+      show("Status: Error: " + e);
+    }
 
     var input = document.getElementById("input");
     function send() {
