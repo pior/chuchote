@@ -8,18 +8,116 @@
 </head>
 
 <body>
-  <input id="input" type="text" />
-  <button onclick="send()">Send</button>
 
-  <pre id="output"></pre>
-
-  <script>
-    var output = document.getElementById("output");
-    function show(msg) {
-      output.innerHTML += msg + "\n";
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    var socket = new WebSocket("ws://" + window.location.host + window.location.pathname + "/socket");
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .wrap {
+      height: 100%;
+      width: 100%;
+
+      padding: 10px;
+
+      display: flex;
+      flex-direction: column;
+    }
+
+    .container {
+      flex: 1 1 100%;
+      display: flex;
+      flex-direction: column;
+      background-color: #eee;
+      border: 1px solid #ccc;
+      padding: 1em;
+      overflow: auto;
+    }
+
+    .form {
+      flex: 0 0 60px;
+      display: flex;
+      border: 1px solid #ddd;
+      padding: 5px;
+    }
+
+    .form > input[type=text] {
+      flex: 1 1 auto;
+      border: 1px solid #eee;
+      padding: 0.8em;
+      font-size: 1.2em;
+    }
+
+    .form > input[type=text]:focus {
+      outline: none;
+    }
+
+    .bubble {
+      flex: 1 1 auto;
+      clear: both;
+    } /* clear the floats here on parent */
+
+    .bubble p {
+      border-radius: 5px;
+      padding: 8px; margin: 8px 12px;
+      max-width: 80%;  /* this will make it not exceed 80% and then wrap */
+      position: relative; transition: background-color 0.5s;
+    }
+    .left p {
+      background-color: #ccc; float: left;
+    } /* floated left */
+
+    .right p {
+      background-color: #33c; color: #fff; float: right;
+    } /* floated right */
+
+    /* classes below are only for arrows, not relevant */
+    .left p::before {
+      content: ''; position: absolute;
+      width: 0; height: 0; left: -8px; top: 8px;
+      border-top: 4px solid transparent;
+      border-right: 8px solid #ccc;
+      border-bottom: 4px solid transparent;
+    }
+    .right p::after {
+      content: ''; position: absolute;
+      width: 0; height: 0; right: -8px; bottom: 8px;
+      border-top: 4px solid transparent;
+      border-left: 8px solid #33c;
+      border-bottom: 4px solid transparent;
+    }
+  </style>
+
+  <div class="wrap">
+    <div id="chatWindow" class="container"></div>
+
+    <div id="inputWindow" class="form">
+      <input id="inp" type="text" placeholder="Send a message"/>
+    </div>
+  </div>
+
+
+  <script>
+    var output = document.getElementById("chatWindow");
+
+    // Start by pushing the history section down with empty line return
+    for (var i = 1; i <= 56; i++) {
+      output.innerHTML += '<br>'
+    }
+
+    function show(msg) {
+      output.innerHTML += `<div class="bubble right"><p>${msg}</p></div>\n`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    var socket = new WebSocket(`ws://${window.location.host}${window.location.pathname}/socket`);
 
     socket.onopen = function () {
       show("Status: Connected");
@@ -28,11 +126,11 @@
     socket.onmessage = function (e) {
       event = JSON.parse(e.data)
       if (event.Message != null) {
-        show(event.Message.From + ": " + event.Message.Body);
+        show(`${event.Message.From}: ${event.Message.Body}`);
         return
       }
       if (event.Info != null) {
-        show("INFO: " + event.Info.Kind + " (" + event.Info.Description + ")");
+        show(`INFO: ${event.Info.Kind} (${event.Info.Description})`);
         return
       }
 
@@ -40,18 +138,25 @@
     };
 
     socket.onclose = function (e) {
-      show("Status: Closed (" + e + ")");
+      show(`Status: Closed (${e})`);
     }
 
     socket.onerror = function (e) {
-      show("Status: Error: " + e);
+      show(`Status: Error: ${e}`);
     }
 
-    var input = document.getElementById("input");
+    var input = document.getElementById("inp");
+
     function send() {
-      socket.send(input.value);
+      let msg = input.value;
+      if (msg.trim().length <= 0) { return; }
+      socket.send(msg);
       input.value = "";
     }
+
+    input.addEventListener('keyup', function(e) {
+      if (e.keyCode == 13) { send(); }
+    });
   </script>
 
 </body>
