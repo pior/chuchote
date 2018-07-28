@@ -147,13 +147,15 @@
 
     function prepareHistoryView() {
       // Start by pushing the history section down with empty line return
-      for (var i = 1; i <= 56; i++) {
+      for (var i = 1; i <= 50; i++) {
         output.innerHTML += '<br>'
       }
     }
+    prepareHistoryView();
 
     function showNotification(msg) {
-      output.innerHTML += `<div class="notification"><p>${msg}</p></div>\n`;
+      now = new Date();
+      output.innerHTML += `<div class="notification"><p>${now.toLocaleTimeString()} - ${msg}</p></div>\n`;
       output.scrollTop = output.scrollHeight;
     }
 
@@ -183,11 +185,11 @@
     };
 
     socket.onclose = function (e) {
-      showNotification(`Disconnected (${e})`);
+      showNotification("Disconnected");
     }
 
     socket.onerror = function (e) {
-      showNotification(`Connection error: ${e}`);
+      showNotification(`Connection error: ${e.reason}`);
     }
 
     var input = document.getElementById("inp");
