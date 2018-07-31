@@ -24,6 +24,10 @@
 #   go-tests = true
 #   unused-packages = true
 
+# Heroku: https://github.com/heroku/heroku-buildpack-go
+[metadata.heroku]
+  root-package = "github.com/pior/chuchote"
+  # go-version = "go1.10.1"
 
 [[constraint]]
   name = "github.com/labstack/echo"
