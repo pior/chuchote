@@ -164,7 +164,9 @@
       output.scrollTop = output.scrollHeight;
     }
 
-    var socket = new WebSocket(`ws://${window.location.host}${window.location.pathname}/socket`);
+    var websocketProtocol = window.location.protocol == "https:" ? "wss:" : "ws:";
+    var websocketUrl = `${websocketProtocol}//${window.location.host}${window.location.pathname}/socket`;
+    var socket = new WebSocket(websocketUrl);
 
     socket.onopen = function () {
       showNotification("Connected");
