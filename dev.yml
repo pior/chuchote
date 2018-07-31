@@ -6,12 +6,12 @@ up:
   # - homebrew:
   #   - openssl
   - go:
-      version: '1.9'
+      version: '1.10.1'
   - golang_dep
 
 commands:
-  build:
-    run: go build -o chuchote
+  run:
+    run: go build -o chuchote && ./chuchote
   run-built:
     desc: |
       Run the target after `dev build`.
