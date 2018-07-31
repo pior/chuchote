@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/teris-io/shortid"
 
@@ -10,6 +13,18 @@ import (
 
 	"github.com/pior/chuchote/pkg/chat"
 )
+
+func getBindString() string {
+	portVar := os.Getenv("PORT")
+	if portVar == "" {
+		portVar = "8000"
+	}
+	port, err := strconv.Atoi(portVar)
+	if err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf(":%d", port)
+}
 
 func main() {
 	e := echo.New()
@@ -29,5 +44,5 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.Gzip())
-	e.Logger.Fatal(e.Start(":8000"))
+	e.Logger.Fatal(e.Start(getBindString()))
 }
