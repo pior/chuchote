@@ -31,7 +31,7 @@ func newRoom(core *core, id roomID) *room {
 	}
 }
 
-func (r *room) send(event *event) {
+func (r *room) broadcast(event *serverEvent) {
 	payload, err := json.Marshal(event)
 	if err != nil {
 		fmt.Printf("Error sending: %s", err)
@@ -50,17 +50,15 @@ func (r *room) closeMessageChannel(ch chan interface{}) {
 func (r *room) createClient(conn *websocket.Conn) *client {
 	c := newClient(conn, r)
 	r.clients[c.id] = c
-	r.pushMemberList()
 	return c
 }
 
 func (r *room) pushMemberList() {
-	r.send(&event{
-		Info: &eventInfo{
-			Kind:        "members",
-			Description: fmt.Sprintf("new client list: %+v", r.clients),
-		},
-	})
+	var members []string
+	for client := range r.clients {
+		members = append(members, string(client))
+	}
+	r.broadcast(newEventMembers(members))
 }
 
 func (r *room) deleteClient(cl *client) {

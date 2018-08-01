@@ -37,6 +37,7 @@ func (co *core) connect(conn *websocket.Conn, roomID string) {
 	cl := room.createClient(conn)
 	go cl.reader()
 	go cl.writer()
+	room.pushMemberList()
 }
 
 func (co *core) deleteRoom(room *room) {

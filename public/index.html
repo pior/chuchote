@@ -73,6 +73,21 @@
       clear: both;
       justify-content: center;
       text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .notification .time {
+      font-size: 90%;
+      color: #666;
+    }
+
+    .debug {
+      /* flex: 1 1 auto; */
+      /* clear: both; */
+      /* justify-content: center; */
+      /* text-align: center; */
+      margin-bottom: 10px;
+      color: blue;
     }
 
     .bubble {
@@ -152,7 +167,13 @@
 
     function showNotification(msg) {
       now = new Date();
-      output.innerHTML += `<div class="notification"><p>${now.toLocaleTimeString()} - ${msg}</p></div>\n`;
+      output.innerHTML += `<div class="notification"><span class="time"> [${now.toLocaleTimeString()}] - </span>${msg}</div>\n`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function showDebug(msg) {
+      now = new Date();
+      output.innerHTML += `<div class="debug">[${now.toLocaleTimeString()}] - ${msg}</div>\n`;
       output.scrollTop = output.scrollHeight;
     }
 
@@ -170,17 +191,17 @@
     };
 
     socket.onmessage = function (e) {
+      showDebug(`Received event: ${e.data}`);
       event = JSON.parse(e.data);
-      if (event.Message != null) {
-        showMessage(`${event.Message.From}: ${event.Message.Body}`);
+      if (event.Kind == "message") {
+        showMessage(`${event.Payload.From}: ${event.Payload.Body}`);
         return
       }
-      if (event.Info != null) {
-        showNotification(`Info: ${event.Info.Kind} (${event.Info.Description})`);
+      if (event.Kind == "members") {
+        showDebug(`Members: ${event.Payload.Members}`);
         return
       }
-
-      showNotification(`Error: unknown event: ${event}`);
+      showDebug(`Error: unknown event: ${e.data}`);
     };
 
     socket.onclose = function (e) {

@@ -37,12 +37,7 @@ func (c *client) reader() {
 		}
 		fmt.Printf("%s: Received from %s: \"%s\"\n", c.id, c.conn.RemoteAddr(), p)
 
-		c.room.send(&event{
-			Message: &eventMessage{
-				From: c.id,
-				Body: string(p),
-			},
-		})
+		c.room.broadcast(newEventMessage(c.id, string(p)))
 	}
 }
 
