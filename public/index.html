@@ -155,6 +155,8 @@
   </div>
 
   <script>
+    var debugMode = window.location.search.indexOf("debug") != -1;
+
     var output = document.getElementById("chatWindow");
 
     function prepareHistoryView() {
@@ -165,21 +167,24 @@
     }
     prepareHistoryView();
 
+    function appendToHistory(html) {
+      output.innerHTML += html;
+      output.scrollTop = output.scrollHeight;
+    }
+
     function showNotification(msg) {
       now = new Date();
-      output.innerHTML += `<div class="notification"><span class="time"> [${now.toLocaleTimeString()}] - </span>${msg}</div>\n`;
-      output.scrollTop = output.scrollHeight;
+      appendToHistory(`<div class="notification"><span class="time"> [${now.toLocaleTimeString()}] - </span>${msg}</div>\n`);
     }
 
     function showDebug(msg) {
+      if (!debugMode) { return }
       now = new Date();
-      output.innerHTML += `<div class="debug">[${now.toLocaleTimeString()}] - ${msg}</div>\n`;
-      output.scrollTop = output.scrollHeight;
+      appendToHistory(`<div class="debug">[${now.toLocaleTimeString()}] - ${msg}</div>\n`);
     }
 
     function showMessage(msg) {
-      output.innerHTML += `<div class="bubble right"><p>${msg}</p></div>\n`;
-      output.scrollTop = output.scrollHeight;
+      appendToHistory(`<div class="bubble right"><p>${msg}</p></div>\n`);
     }
 
     var websocketProtocol = window.location.protocol == "https:" ? "wss:" : "ws:";
