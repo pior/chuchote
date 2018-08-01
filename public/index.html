@@ -187,9 +187,12 @@
       appendToHistory(`<div class="bubble right"><p>${msg}</p></div>\n`);
     }
 
-    var websocketProtocol = window.location.protocol == "https:" ? "wss:" : "ws:";
-    var websocketUrl = `${websocketProtocol}//${window.location.host}${window.location.pathname}/socket`;
-    var socket = new WebSocket(websocketUrl);
+    function makeWebsocketURL() {
+      var websocketProtocol = window.location.protocol == "https:" ? "wss:" : "ws:";
+      return `${websocketProtocol}//${window.location.host}${window.location.pathname}/socket`;
+    }
+
+    var socket = new WebSocket(makeWebsocketURL());
 
     socket.onopen = function () {
       showNotification("Connected");
