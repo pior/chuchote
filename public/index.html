@@ -225,8 +225,13 @@
     function send() {
       let msg = input.value;
       if (msg.trim().length <= 0) { return; }
-      socket.send(msg);
+      sendEvent("message", {Body: msg})
       input.value = "";
+    }
+
+    function sendEvent(kind, payload) {
+      var event = {Kind: kind, Payload: payload}
+      socket.send(JSON.stringify(event));
     }
 
     input.addEventListener('keyup', function(e) {

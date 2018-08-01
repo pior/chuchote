@@ -30,14 +30,28 @@ func (c *client) reader() {
 	}()
 
 	for {
-		_, p, err := c.conn.ReadMessage()
+		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			fmt.Println(err)
 			break
 		}
-		fmt.Printf("%s: Received from %s: \"%s\"\n", c.id, c.conn.RemoteAddr(), p)
+		fmt.Printf("%s: Received from %s: \"%s\"\n", c.id, c.conn.RemoteAddr(), message)
 
-		c.room.broadcast(newEventMessage(c.id, string(p)))
+		c.processMessage(message)
+	}
+}
+
+func (c *client) processMessage(message []byte) {
+	event, err := parseClientEvent(message)
+	if err != nil {
+		fmt.Printf("error parsing client event: %s", err)
+	}
+
+	switch e := event.(type) {
+	case *clientEventMessage:
+		c.room.broadcast(newEventMessage(c.id, e.Body))
+	default:
+		fmt.Printf("unknown event type: %T : %+v", e, e)
 	}
 }
 
