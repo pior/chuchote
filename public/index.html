@@ -209,7 +209,7 @@
           return
         }
         if (event.Kind == "roomState") {
-          document.getElementById("room-name").innerHTML = `Room ${event.Payload.Name}`;
+          document.getElementById("room-name").innerHTML = `<a href="${window.location.href}">link to room ${event.Payload.Name}</a>`;
           showNotification(`Members online: ${event.Payload.Members}`);
           return
         }
