@@ -6,8 +6,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/teris-io/shortid"
-
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 
@@ -30,8 +28,8 @@ func main() {
 	e := echo.New()
 
 	e.GET("/", func(c echo.Context) error {
-		roomID := shortid.MustGenerate()
-		return c.Redirect(http.StatusTemporaryRedirect, "/r/"+roomID)
+		roomID := chat.RandomRoomID()
+		return c.Redirect(http.StatusTemporaryRedirect, "/r/"+string(roomID))
 	})
 
 	e.GET("/r/:id", func(c echo.Context) error {

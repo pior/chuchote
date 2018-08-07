@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/dchest/uniuri"
 	"github.com/gorilla/websocket"
-	"github.com/teris-io/shortid"
 )
 
 type roomID string
 
-func (roomID) NewRandom() roomID {
-	return roomID(shortid.MustGenerate())
+func RandomRoomID() roomID {
+	return roomID(uniuri.New())
 }
 
 type room struct {

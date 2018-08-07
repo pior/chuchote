@@ -3,9 +3,9 @@ package chat
 import (
 	"fmt"
 
+	"github.com/dchest/uniuri"
 	"github.com/dustinkirkland/golang-petname"
 	"github.com/gorilla/websocket"
-	"github.com/teris-io/shortid"
 )
 
 type clientID string
@@ -20,7 +20,7 @@ type client struct {
 
 func newClient(conn *websocket.Conn, room *room) *client {
 	c := &client{
-		id:      clientID(shortid.MustGenerate()),
+		id:      clientID(uniuri.New()),
 		name:    petname.Generate(1, ""),
 		conn:    conn,
 		room:    room,
@@ -67,7 +67,7 @@ func (c *client) processMessage(message []byte) {
 
 	switch e := event.(type) {
 	case *clientEventMessage:
-		c.room.broadcast(newEventMessage(c.id, e.Body))
+		c.room.broadcast(newEventMessage(c.name, e.Body))
 	default:
 		fmt.Printf("unknown event type: %T : %+v", e, e)
 	}
