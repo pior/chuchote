@@ -140,24 +140,24 @@
   </style>
 
   <div class="wrap">
-      <div class="header">
-        <p>Chuchote</p>
-        <div>
-          <p>Room GYtFlhFmR</p>
-        </div>
+    <div class="header">
+      <p>Chuchote</p>
+      <div>
+        <div id="room-name"></div>
       </div>
+    </div>
 
-      <div id="chatWindow" class="container"></div>
+    <div id="historyContainer" class="container"></div>
 
-    <div id="inputWindow" class="form">
-      <input id="inp" type="text" placeholder="Send a message" autofocus/>
+    <div class="form">
+      <input id="messageInputField" type="text" placeholder="Send a message" autofocus/>
     </div>
   </div>
 
   <script>
     var debugMode = window.location.search.indexOf("debug") != -1;
 
-    var output = document.getElementById("chatWindow");
+    var output = document.getElementById("historyContainer");
 
     function prepareHistoryView() {
       // Start by pushing the history section down with empty line return
@@ -165,7 +165,6 @@
         output.innerHTML += '<br>'
       }
     }
-    prepareHistoryView();
 
     function appendToHistory(html) {
       output.innerHTML += html;
@@ -192,51 +191,65 @@
       return `${websocketProtocol}//${window.location.host}${window.location.pathname}/socket`;
     }
 
-    var socket = new WebSocket(makeWebsocketURL());
+    function setupSocketEvents(socket) {
+      socket.onopen = function () {
+        showNotification("Connected");
+      };
 
-    socket.onopen = function () {
-      showNotification("Connected");
-    };
+      socket.onmessage = function (e) {
+        showDebug(`Received event: ${e.data}`);
+        event = JSON.parse(e.data);
 
-    socket.onmessage = function (e) {
-      showDebug(`Received event: ${e.data}`);
-      event = JSON.parse(e.data);
-      if (event.Kind == "message") {
-        showMessage(`${event.Payload.From}: ${event.Payload.Body}`);
-        return
-      }
-      if (event.Kind == "members") {
-        showDebug(`Members: ${event.Payload.Members}`);
-        return
-      }
-      showDebug(`Error: unknown event: ${e.data}`);
-    };
+        if (event.Kind == "message") {
+          showMessage(`${event.Payload.From}: ${event.Payload.Body}`);
+          return
+        }
+        if (event.Kind == "roomState") {
+          document.getElementById("room-name").innerHTML = `Room ${event.Payload.Name}`;
+          showNotification(`Members online: ${event.Payload.Members}`);
+          return
+        }
+        showDebug(`Error: unknown event: ${e.data}`);
+      };
 
-    socket.onclose = function (e) {
-      showNotification("Disconnected");
+      socket.onclose = function () {
+        showNotification("Disconnected");
+      };
+
+      socket.onerror = function (e) {
+        showNotification(`Connection error: ${e.reason}`);
+      };
     }
 
-    socket.onerror = function (e) {
-      showNotification(`Connection error: ${e.reason}`);
+    function setupInputFieldEvents(input, socket) {
+      function send() {
+        let msg = input.value;
+        if (msg.trim().length <= 0) { return; }
+        sendEvent("message", {Body: msg})
+        input.value = "";
+      };
+
+      function sendEvent(kind, payload) {
+        var event = {Kind: kind, Payload: payload}
+        socket.send(JSON.stringify(event));
+      };
+
+      input.addEventListener('keyup', function(e) {
+        if (e.keyCode == 13) { send(); }
+      });
     }
 
-    var input = document.getElementById("inp");
+    function init() {
+      prepareHistoryView();
 
-    function send() {
-      let msg = input.value;
-      if (msg.trim().length <= 0) { return; }
-      sendEvent("message", {Body: msg})
-      input.value = "";
+      var socket = new WebSocket(makeWebsocketURL());
+      setupSocketEvents(socket);
+
+      setupInputFieldEvents(
+        document.getElementById("messageInputField"),
+        socket);
     }
-
-    function sendEvent(kind, payload) {
-      var event = {Kind: kind, Payload: payload}
-      socket.send(JSON.stringify(event));
-    }
-
-    input.addEventListener('keyup', function(e) {
-      if (e.keyCode == 13) { send(); }
-    });
+    init();
   </script>
 
 </body>

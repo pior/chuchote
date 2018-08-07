@@ -2,16 +2,16 @@
 
 
 [[projects]]
-  name = "github.com/cskr/pubsub"
-  packages = ["."]
-  revision = "a1dc30a0b38055a251f1f04ceb4cc1c7207b0540"
-  version = "v1.0.1"
-
-[[projects]]
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
   revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
   version = "v3.2.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/dustinkirkland/golang-petname"
+  packages = ["."]
+  revision = "d3c2ba80e75eeef10c5cf2fc76d2c809637376b3"
 
 [[projects]]
   name = "github.com/gorilla/websocket"
@@ -82,11 +82,11 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "e072cadbbdc8dd3d3ffa82b8b4b9304c261d9311"
+  revision = "bd9dbc187b6e1dacfdd2722a87e83093c2d7bd6e"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fe84adc163e7002cc1db8b12705313507d6ec16c8752cddc897d50f483738244"
+  inputs-digest = "930bee2d1bfae108d970156886e6ed5892197015f255c2df1caf8c052580e928"
   solver-name = "gps-cdcl"
   solver-version = 1

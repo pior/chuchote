@@ -43,7 +43,12 @@ type serverEvent struct {
 	Payload interface{}
 }
 
-type serverEventMembers struct {
+type serverEventClientState struct {
+	Name string
+}
+
+type serverEventRoomState struct {
+	Name    string
 	Members []string
 }
 
@@ -59,9 +64,16 @@ func newEventMessage(from clientID, body string) *serverEvent {
 	}
 }
 
-func newEventMembers(members []string) *serverEvent {
+func newEventClientState(name string) *serverEvent {
 	return &serverEvent{
-		Kind:    "members",
-		Payload: &serverEventMembers{Members: members},
+		Kind:    "clientState",
+		Payload: &serverEventClientState{Name: name},
+	}
+}
+
+func newEventRoomState(name string, members []string) *serverEvent {
+	return &serverEvent{
+		Kind:    "roomState",
+		Payload: &serverEventRoomState{Name: name, Members: members},
 	}
 }

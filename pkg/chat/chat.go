@@ -34,15 +34,12 @@ func (co *core) getOrCreateRoom(id string) *room {
 
 func (co *core) connect(conn *websocket.Conn, roomID string) {
 	room := co.getOrCreateRoom(roomID)
-	cl := room.createClient(conn)
-	go cl.reader()
-	go cl.writer()
-	room.pushMemberList()
+	room.createClient(conn)
 }
 
 func (co *core) deleteRoom(room *room) {
 	delete(co.rooms, room.id)
-	fmt.Printf("Deleted a room: %+v\n", room)
+	fmt.Printf("Deleted a room: %s\n", room.id)
 	fmt.Printf("New list of rooms: %+v\n", co.rooms)
 }
 

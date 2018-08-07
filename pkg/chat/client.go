@@ -3,6 +3,7 @@ package chat
 import (
 	"fmt"
 
+	"github.com/dustinkirkland/golang-petname"
 	"github.com/gorilla/websocket"
 	"github.com/teris-io/shortid"
 )
@@ -10,24 +11,40 @@ import (
 type clientID string
 
 type client struct {
-	id   clientID
-	conn *websocket.Conn
-	room *room
+	id      clientID
+	name    string
+	conn    *websocket.Conn
+	room    *room
+	channel chan []byte
 }
 
 func newClient(conn *websocket.Conn, room *room) *client {
-	return &client{
-		id:   clientID(shortid.MustGenerate()),
-		conn: conn,
-		room: room,
+	c := &client{
+		id:      clientID(shortid.MustGenerate()),
+		name:    petname.Generate(1, ""),
+		conn:    conn,
+		room:    room,
+		channel: make(chan []byte),
 	}
+
+	go c.reader()
+	go c.writer()
+
+	return c
+}
+
+func (c *client) close() {
+	fmt.Println("Deleting client: ", c.id, c.name)
+	c.room.deleteClient(c)
+
+	close(c.channel)
+
+	fmt.Println("Closing connection: ", c.conn.RemoteAddr())
+	c.conn.Close()
 }
 
 func (c *client) reader() {
-	defer func() {
-		c.conn.Close()
-		c.room.deleteClient(c)
-	}()
+	defer c.close()
 
 	for {
 		_, message, err := c.conn.ReadMessage()
@@ -39,6 +56,7 @@ func (c *client) reader() {
 
 		c.processMessage(message)
 	}
+	fmt.Printf("%s: stopping reader\n", c.id)
 }
 
 func (c *client) processMessage(message []byte) {
@@ -55,16 +73,20 @@ func (c *client) processMessage(message []byte) {
 	}
 }
 
+// writer is the only place that writes to the connection
 func (c *client) writer() {
-	ch := c.room.getMessageChannel()
-	defer c.room.closeMessageChannel(ch)
-
-	for msg := range ch {
-		fmt.Printf("%s: Sending to %s: \"%s\"\n", c.id, c.conn.RemoteAddr(), msg)
-		err := c.conn.WriteMessage(websocket.TextMessage, []byte(msg.(string)))
+	for message := range c.channel {
+		fmt.Printf("%s: writing to %s: \"%s\"\n", c.id, c.conn.RemoteAddr(), message)
+		err := c.conn.WriteMessage(websocket.TextMessage, message)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Printf("%s: error writing to %s: %s\n", c.id, c.conn.RemoteAddr(), err)
 			break
 		}
 	}
+
+	fmt.Printf("%s: writer stopped\n", c.id)
+}
+
+func (c *client) sendMessage(message []byte) {
+	c.channel <- message
 }
