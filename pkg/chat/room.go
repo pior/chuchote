@@ -17,7 +17,7 @@ func RandomRoomID() roomID {
 type room struct {
 	id      roomID
 	core    *core
-	channel chan []byte
+	channel chan *serverEvent
 	clients map[clientID]*client
 }
 
@@ -25,7 +25,7 @@ func newRoom(core *core, id roomID) *room {
 	r := &room{
 		id:      id,
 		core:    core,
-		channel: make(chan []byte),
+		channel: make(chan *serverEvent),
 		clients: make(map[clientID]*client),
 	}
 	go r.broadcaster()
@@ -33,19 +33,23 @@ func newRoom(core *core, id roomID) *room {
 }
 
 func (r *room) broadcaster() {
-	for msg := range r.channel {
+	for event := range r.channel {
+		payload, err := json.Marshal(event)
+		if err != nil {
+			fmt.Printf("Error serializing: %+v : %s", event, err)
+		}
+
 		for _, client := range r.clients {
-			client.channel <- msg
+			if event.From != nil && event.From.id == client.id {
+				continue
+			}
+			client.channel <- payload
 		}
 	}
 }
 
 func (r *room) broadcast(event *serverEvent) {
-	payload, err := json.Marshal(event)
-	if err != nil {
-		fmt.Printf("Error sending: %s", err)
-	}
-	r.channel <- payload
+	r.channel <- event
 }
 
 func (r *room) createClient(conn *websocket.Conn) {

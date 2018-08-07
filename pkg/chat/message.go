@@ -25,7 +25,7 @@ func parseClientEvent(data []byte) (interface{}, error) {
 	if event.Kind == "message" {
 		event = &clientEvent{Payload: &clientEventMessage{}}
 	} else {
-		return nil, fmt.Errorf("invalid client event kind %s", event.Kind)
+		return nil, fmt.Errorf("invalid client event: %+v", event)
 	}
 
 	err = json.Unmarshal(data, event)
@@ -38,8 +38,14 @@ func parseClientEvent(data []byte) (interface{}, error) {
 
 // SERVER events
 
+type clientInfo struct {
+	Name string
+	id   clientID
+}
+
 type serverEvent struct {
 	Kind    string
+	From    *clientInfo
 	Payload interface{}
 }
 
@@ -53,14 +59,14 @@ type serverEventRoomState struct {
 }
 
 type serverEventMessage struct {
-	From clientID
 	Body string
 }
 
-func newEventMessage(from clientID, body string) *serverEvent {
+func newEventMessage(fromID clientID, fromName string, body string) *serverEvent {
 	return &serverEvent{
 		Kind:    "message",
-		Payload: &serverEventMessage{From: from, Body: body},
+		From:    &clientInfo{id: fromID, Name: fromName},
+		Payload: &serverEventMessage{Body: body},
 	}
 }
 

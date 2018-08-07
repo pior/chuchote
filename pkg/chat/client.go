@@ -67,7 +67,7 @@ func (c *client) processMessage(message []byte) {
 
 	switch e := event.(type) {
 	case *clientEventMessage:
-		c.room.broadcast(newEventMessage(c.name, e.Body))
+		c.room.broadcast(newEventMessage(c.id, c.name, e.Body))
 	default:
 		fmt.Printf("unknown event type: %T : %+v", e, e)
 	}

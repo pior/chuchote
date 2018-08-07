@@ -104,15 +104,9 @@
       transition: background-color 0.5s;
     }
     .left p {
-      background-color: #ccc;
+      background-color: #fff;
       float: left;
     } /* floated left */
-
-    .right p {
-      background-color: #33c;
-      color: #fff;
-      float: right;
-    } /* floated right */
 
     /* classes below are only for arrows, not relevant */
     .left p::before {
@@ -123,9 +117,15 @@
       left: -8px;
       top: 8px;
       border-top: 4px solid transparent;
-      border-right: 8px solid #ccc;
+      border-right: 8px solid #fff;
       border-bottom: 4px solid transparent;
     }
+
+    .right p {
+      background-color: #ccc;
+      float: right;
+    } /* floated right */
+
     .right p::after {
       content: '';
       position: absolute;
@@ -134,7 +134,7 @@
       right: -8px;
       bottom: 8px;
       border-top: 4px solid transparent;
-      border-left: 8px solid #33c;
+      border-left: 8px solid #ccc;
       border-bottom: 4px solid transparent;
     }
   </style>
@@ -172,22 +172,26 @@
     }
 
     function showNotification(msg) {
-      now = new Date();
+      let now = new Date();
       appendToHistory(`<div class="notification"><span class="time"> [${now.toLocaleTimeString()}] - </span>${msg}</div>\n`);
     }
 
     function showDebug(msg) {
       if (!debugMode) { return }
-      now = new Date();
+      let now = new Date();
       appendToHistory(`<div class="debug">[${now.toLocaleTimeString()}] - ${msg}</div>\n`);
     }
 
-    function showMessage(msg) {
+    function showLocalMessage(msg) {
       appendToHistory(`<div class="bubble right"><p>${msg}</p></div>\n`);
     }
 
+    function showRemoteMessage(from, msg) {
+      appendToHistory(`${from} <div class="bubble left"><p>${msg}</p></div>\n`);
+    }
+
     function makeWebsocketURL() {
-      var websocketProtocol = window.location.protocol == "https:" ? "wss:" : "ws:";
+      let websocketProtocol = window.location.protocol == "https:" ? "wss:" : "ws:";
       return `${websocketProtocol}//${window.location.host}${window.location.pathname}/socket`;
     }
 
@@ -198,10 +202,10 @@
 
       socket.onmessage = function (e) {
         showDebug(`Received event: ${e.data}`);
-        event = JSON.parse(e.data);
+        let event = JSON.parse(e.data);
 
         if (event.Kind == "message") {
-          showMessage(`${event.Payload.From}: ${event.Payload.Body}`);
+          showRemoteMessage(event.From.Name, event.Payload.Body);
           return
         }
         if (event.Kind == "roomState") {
@@ -222,16 +226,18 @@
     }
 
     function setupInputFieldEvents(input, socket) {
-      function send() {
-        let msg = input.value;
-        if (msg.trim().length <= 0) { return; }
-        sendEvent("message", {Body: msg})
-        input.value = "";
-      };
-
-      function sendEvent(kind, payload) {
+      function writeSocket(kind, payload) {
         var event = {Kind: kind, Payload: payload}
         socket.send(JSON.stringify(event));
+      };
+
+      function send() {
+        let msg = input.value.trim();
+        if (msg.length > 0) {
+          input.value = "";
+          showLocalMessage(msg);
+          writeSocket("message", {Body: msg})
+        }
       };
 
       input.addEventListener('keyup', function(e) {
@@ -245,9 +251,8 @@
       var socket = new WebSocket(makeWebsocketURL());
       setupSocketEvents(socket);
 
-      setupInputFieldEvents(
-        document.getElementById("messageInputField"),
-        socket);
+      var messageInputField = document.getElementById("messageInputField")
+      setupInputFieldEvents(messageInputField, socket);
     }
     init();
   </script>
